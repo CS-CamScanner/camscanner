@@ -1,58 +1,103 @@
 ---
-name: camscanner
-description: "CamScanner document processing - an intelligent document conversion and processing platform and official CamScanner Skill. Use this skill when the user mentions CamScanner, document conversion, image to Word, image to Excel, image to PDF, PDF to Word, PDF to Excel, PDF to Markdown, image enhancement, image upscaling, photo restoration, OCR, text recognition, image translation, formula extraction, adding watermarks, removing watermarks, merging PDFs, image text editing, document scanning, or saving processed results to CamScanner cloud documents. Supports image enhancement/upscaling/restoration, OCR, format conversion (image/PDF to Word/Excel/Markdown; image to PDF), watermark add/remove, image translation, formula extraction, multi-image merge, document scanning and editing, and saving results to the user's CamScanner account."
-metadata: {"homepage":"https://www.camscanner.com","version":"1.0.0","requires":{"bins":["camscanner-cli"],"cliHelp":"camscanner-cli --help"},"category":"productivity","keywords":["CamScanner","document conversion","image to Word","image to Excel","image to PDF","PDF to Word","PDF to Excel","PDF to Markdown","image enhancement","image upscaling","photo restoration","OCR","text recognition","image translation","formula extraction","watermark","remove watermark","merge PDF","merge Word","merge Excel","document scanning","image editing","cloud documents"],"file_types":["jpg","jpeg","png","pdf","txt","md"]}
+name: "camscanner"
+display_name: "CamScanner Official Skill"
+display_name_en: "camscanner"
+description: "CamScanner document processing - an intelligent document conversion and processing platform and official CamScanner Skill. Use this skill when the user mentions CamScanner, document conversion, image to Word, image to Excel, image to PDF, PDF to Word, PDF to Excel, PDF to Markdown, image enhancement, image upscaling, photo restoration, OCR, text recognition, image translation, formula extraction, adding watermarks, removing watermarks, merging PDFs, image text editing, document scanning, invoice recognition, receipt recognition, cloud document search, or saving processed results to CamScanner cloud documents. Supports image enhancement/upscaling/restoration, OCR, format conversion (image/PDF to Word/Excel/Markdown; image to PDF), watermark add/remove, image translation, formula extraction, multi-image merge, document scanning and editing, invoice/receipt recognition, cloud document search, and saving results to the user's CamScanner account."
+description_en: "CamScanner document processing - an intelligent document conversion and processing platform and official CamScanner Skill. Use this skill when the user mentions CamScanner, document conversion, image to Word, image to Excel, image to PDF, PDF to Word, PDF to Excel, PDF to Markdown, image enhancement, image upscaling, photo restoration, OCR, text recognition, image translation, formula extraction, adding watermarks, removing watermarks, merging PDFs, image text editing, document scanning, invoice recognition, receipt recognition, cloud document search, or saving processed results to CamScanner cloud documents. Supports image enhancement/upscaling/restoration, OCR, format conversion (image/PDF to Word/Excel/Markdown; image to PDF), watermark add/remove, image translation, formula extraction, multi-image merge, document scanning and editing, invoice/receipt recognition, cloud document search, and saving results to the user's CamScanner account."
+homepage: "https://www.camscanner.com"
+version: "1.1.5"
+category: "productivity"
+author: "CamScanner"
 ---
-
 # CamScanner CLI Skill Guide
 
-The CamScanner CLI Skill provides a complete document processing toolkit through the `camscanner-cli` command-line tool and the CamScanner AI Tools API. It supports image enhancement, OCR, format conversion, watermarking, translation, restoration, merging, and related operations. Results can also be saved to the user's CamScanner account.
+The CamScanner CLI Skill provides a complete document processing toolkit through the `camscanner-cli` command-line tool and the CamScanner AI Tools API. It supports image enhancement, OCR, format conversion, watermarking, translation, restoration, merging, receipt recognition, and other image/PDF processing operations, as well as cloud document search.
 
-## Version Check
+## Environment Setup
 
-On first use, run this command to verify that the CLI is installed and available:
+Before using this Skill for the first time in a session, the agent **must** complete the following decision flow. This only needs to run once per session.
 
-```bash
-camscanner-cli --version
+**The agent must strictly follow this flow — skipping any step is prohibited:**
+
+```
+Step 1: camscanner-cli --version
+         │
+         ├─ Command exists (outputs version) → Step 2
+         │
+         └─ Command not found → [Windows?] Double-check with Test-Path ↓
+                          │
+                          ├─ Test-Path "$env:LOCALAPPDATA\camscanner-cli\camscanner-cli.exe" = True
+                          │   → Refresh PATH → Step 2 (no install needed)
+                          │
+                          └─ False / Non-Windows → Run install script → Step 3 (skip upgrade)
+
+Step 2: Run upgrade script
+         │
+         └─ Done → Step 3
+
+Step 3: camscanner-cli auth status
+         │
+         ├─ Logged in → ✅ Environment ready, proceed with user task
+         │
+         └─ Not logged in / expired → Run camscanner-cli auth login → Verify → ✅
 ```
 
-If the command is missing, run the installer described in "Tool Installation" first.
+### Step 1. Check Installation
 
----
+Run `camscanner-cli --version`:
 
-## Tool Installation
+- **Command exists** (outputs version) → Already installed, continue to Step 2
+- **Command not found** (command not found / not recognized) → **On Windows, you must perform the double-check below first**. If confirmed not installed, run the install script. After installation, **skip directly to Step 3**.
 
-Run the installer. It automatically detects the platform and downloads the matching binary to a global PATH location:
+**Windows double-check (mandatory)**:
 
-```bash
-bash scripts/setup.sh          # Linux/macOS -> ~/.local/bin/camscanner-cli
-powershell scripts/setup.ps1   # Windows -> %LOCALAPPDATA%\camscanner-cli\
-node scripts/setup.cjs         # Any platform (requires Node.js >= 18)
+`camscanner-cli --version` failing on Windows does not necessarily mean it is not installed — the PATH may not be refreshed or ConPTY may swallow output. **Before running the install script**, check whether the file exists:
+
+```powershell
+Test-Path "$env:LOCALAPPDATA\camscanner-cli\camscanner-cli.exe"
 ```
 
-Verify the installation:
+- Returns **True** → CLI is installed, just missing from PATH. Refresh PATH then continue to Step 2:
+  ```powershell
+  $env:PATH = "$env:LOCALAPPDATA\camscanner-cli;$env:PATH"
+  ```
+- Returns **False** → Confirmed not installed, run the install script → Step 3
+
+| Platform | Install Command |
+|----------|-----------------|
+| Linux/macOS | `bash scripts/setup.sh` |
+| Windows | `powershell -ExecutionPolicy Bypass -File scripts/setup.ps1` |
+
+### Step 2. Version Upgrade Check (installed users only)
+
+Run the upgrade script to check for a new version (the script handles detection internally; exits silently if no update is available; network failures do not block usage):
+
+| Platform | Upgrade Command |
+|----------|-----------------|
+| Linux/macOS | `bash scripts/upgrade.sh` |
+| Windows | `node scripts/upgrade.cjs` |
+| Fallback (any platform) | `node scripts/upgrade.cjs` |
+
+> The upgrade script updates both the CLI binary and Skill files (SKILL.md, references/, scripts/) to keep them in sync. On failure it auto-rolls back; manual rollback: `bash scripts/upgrade.sh --rollback` or `node scripts/upgrade.cjs --rollback`.
+
+### Step 3. Authentication Check
 
 ```bash
-camscanner-cli --version
+camscanner-cli auth status
 ```
 
----
+- **Logged in** → Environment ready, proceed with user task
+- **Not logged in or token expired** → Run `camscanner-cli auth login`, then verify again
 
-## Authentication
+> **Agent login behavior rules (mandatory)**:
+> - Must run `camscanner-cli auth login` in the **foreground** (no `&` backgrounding). The command blocks until the user completes browser OAuth and returns automatically.
+> - After login, verify with `camscanner-cli auth status`; on failure, inform the user to retry.
 
-### Browser Login
-
-```bash
-camscanner-cli auth login
-```
-
-This opens a browser for OAuth login and stores the token in the system keychain.
-
-| Action | Description |
-|--------|-------------|
-| Browser login | `camscanner-cli auth login` - OAuth login; token is stored in the keychain |
-| Check status | `camscanner-cli auth status` - token source and remaining validity |
-| Log out | `camscanner-cli auth logout` - remove the token from the keychain |
+| Action | Command |
+|--------|---------|
+| Check status | `camscanner-cli auth status` |
+| Browser login | `camscanner-cli auth login` |
+| Log out | `camscanner-cli auth logout` |
 
 > **Token safety**: Never display token plaintext to the user or write it to an unsafe location.
 
@@ -73,7 +118,7 @@ This opens a browser for OAuth login and stores the token in the system keychain
 camscanner-cli <group> <command> [file...] [flags]
 ```
 
-**Groups**: `image` (image processing), `pdf` (PDF processing), `txt` (text processing), `auth` (authentication management).
+**Groups**: `image` (image processing), `pdf` (PDF processing), `txt` (text processing), `doc` (cloud document management), `auth` (authentication management).
 
 **Common flags**:
 
@@ -81,7 +126,7 @@ camscanner-cli <group> <command> [file...] [flags]
 |------|-------------|
 | `-o, --output <path>` | Output file path. If omitted, the CLI derives one automatically. |
 | `-s, --save` | Save the result to the user's CamScanner account and skip local download. |
-| `--save-title <title>` | Cloud document title. If omitted, the CLI generates one in the form `camscanner-cli{feature}{time}`. |
+| `--save-title <title>` | Cloud document title. If omitted, the CLI generates one in the form `{feature}{time}`. |
 | `-h, --help` | Show help. |
 
 ### Interaction Between `-o` and `-s`
@@ -93,7 +138,27 @@ camscanner-cli <group> <command> [file...] [flags]
 | `-s` | **Save only to the cloud** and skip local download. |
 | `-o path -s` | Save both locally **and** to the cloud. |
 
-> For agent workflows, prefer `-s` when local artifacts are unnecessary.
+### Agent Default Save Policy
+
+> **Mandatory rule**: When the user does not explicitly specify a save method, the agent **must** save both locally and to the cloud (pass the `-s` flag). Saving only locally without `-s` is **incorrect behavior**. Only omit `-s` when the user explicitly says "save locally only" / "don't save to cloud".
+
+| User Intent | Agent Behavior |
+|-------------|----------------|
+| No explicit save preference | **Must** use `-s` to save both locally and to cloud (i.e., `-o <auto-derived path> -s`) |
+| Explicitly says "save locally" or specifies a path | Only `-o path`, no `-s` |
+| Explicitly says "save to cloud/account" | Only `-s`, no `-o` |
+| Feature does not support `-s` (see commands marked with No in the overview) | Save locally only, no `-s` |
+
+### `--save-title` Smart Naming Rules
+
+When saving to cloud with `-s`, the agent **must** attempt smart naming via `--save-title`:
+
+1. **Prefer smart naming**: Generate a concise, meaningful title based on the filename, user intent, and document content.
+   - Example: User says "convert this invoice to Excel" → `--save-title "Invoice to Excel"`
+   - Example: File is `meeting_notes_0810.png`, converting to Word → `--save-title "Meeting Notes 0810"`
+   - Example: Merging multiple scans into PDF → `--save-title "Scanned Documents Merged"`
+2. **Fallback when naming fails**: If a meaningful title cannot be inferred from context (e.g., filename has no semantics, user did not describe intent), **do not pass** `--save-title` — let the CLI use its default rule (`{feature}{time}`).
+3. **Title requirements**: Concise (20 chars or fewer), meaningful, no file paths or technical parameters.
 
 ---
 
@@ -125,6 +190,8 @@ camscanner-cli <group> <command> [file...] [flags]
 | **Detection** | `image validate` | Tampering/AI-generated image detection | stdout JSON | No |
 | **Editing** | `image scan` | Analyze image layout and obtain character indexes and OSS keys | stdout/JSON | No |
 | **Editing** | `image edit` | Replace, delete, or move text based on scan results | Image | Yes |
+| **Receipt** | `image receipt` | Invoice/receipt recognition, returns structured JSON | stdout/JSON | No |
+| **Cloud docs** | `doc search` | Search cloud documents (keyword/time/type filter) | stdout table | No |
 
 ### Unsupported Operations
 
@@ -132,6 +199,7 @@ camscanner-cli <group> <command> [file...] [flags]
 - File version management.
 - Video/audio processing.
 - Batch folder management.
+- Cloud document content editing (search only).
 
 ---
 
@@ -145,23 +213,34 @@ Before executing an operation, the agent **must** read the corresponding referen
 |---------|----------------|----------|
 | Processing image files | `references/image-processing.md` | Full parameters, mode values, and examples for all `image` commands |
 | Processing PDF files | `references/pdf-processing.md` | Full parameters, limits, and examples for all `pdf` commands |
+| Searching cloud documents | The "Cloud Document Management" section in this file | Full parameters and usage for `doc search` |
+| Invoice/receipt recognition | The "Invoice/Receipt Recognition" section in this file | Full parameters and usage for `image receipt` |
 | User request requires multiple steps | `references/tool-combos.md` | Scenario-to-command combination mapping |
 
 ### Workflow References (Required for Multi-Step Tasks)
 
 | Trigger | Workflow File | Contents |
 |---------|---------------|----------|
-| Multiple images need merging or batch conversion | `references/workflows/batch-convert.md` | Merge strategy selection and batching logic |
-| Image enhancement, upscaling, or restoration | `references/workflows/image-enhance.md` | Mode selection decision tree |
-| OCR or text extraction | `references/workflows/ocr-extract.md` | Plain text vs Markdown vs Word comparison |
-| Image translation | `references/workflows/translate.md` | Language codes and multilingual version workflow |
-| Watermark add/remove | `references/workflows/watermark-protection.md` | Recommended parameters and scenario mapping |
+| Multiple images need merging or batch conversion | `references/batch-convert.md` | Merge strategy selection and batching logic |
+| Image enhancement, upscaling, or restoration | `references/image-enhance.md` | Mode selection decision tree |
+| OCR or text extraction | `references/ocr-extract.md` | Plain text vs Markdown vs Word comparison |
+| Image translation | `references/translate.md` | Language codes and multilingual version workflow |
+| Watermark add/remove | `references/watermark-protection.md` | Recommended parameters and scenario mapping |
 
 ---
 
 ## Intent Routing Rules
 
 Route intents in the priority order below. **Do not jump directly to a command based only on keywords.**
+
+### Top-Level Split: Document Search vs File Processing
+
+| User Intent | Route Direction | Notes |
+|-------------|-----------------|-------|
+| Search/find/look up cloud documents | → `doc search` flow | Does not involve image/PDF processing |
+| Process images/PDFs (enhance, convert, OCR, recognize, etc.) | → File processing routes below (starting at Level 1) | Existing flow |
+
+> **Key judgment**: Is the user's need "searching cloud documents" or "processing local files"? The former uses the `doc search` command; the latter uses `image`/`pdf`/`txt` commands. These are independent flows and must not be mixed.
 
 ### Level 1: Determine Input File Type
 
@@ -188,6 +267,7 @@ Use the user's verbs, keywords, and context to determine the operation type.
 | Detection | "detect", "Photoshop", "tampered", "AI-generated" | `image validate` |
 | Editing | "edit image text", "replace text", "modify text", "change X to Y" | `image scan` -> `image edit` (automatically locate character indexes) |
 | Formula extraction | "formula", "LaTeX" | `image extract-formula` |
+| Receipt recognition | "invoice", "receipt", "expense report", "bill", "ticket" | `image receipt` |
 
 ### Level 3: Determine Quantity and Artifact
 
@@ -239,10 +319,135 @@ When a user request matches multiple operations, disambiguate as follows.
 | "remove the watermark from this image" | ~~`pdf remove-watermark`~~ | `image enhance --mode 10` | `pdf remove-watermark` only processes PDFs |
 | "image to PDF" | ~~`image convert --format pdf`~~ | `image to-pdf` / `image merge-pdf` | `convert_image` does not support PDF output |
 | "combine a.jpg and b.pdf into one Word file" | ~~silently process separately~~ | Explain that cross-type merging is not supported | Different input types cannot be merged into one artifact |
+| "recognize this invoice" | ~~`image convert --format excel`~~ | `image receipt invoice.jpg` | `receipt` extracts structured fields; `convert` converts image content to a table format |
+| "find my contract document" | ~~`image ocr`~~ | `doc search "contract"` | Searching cloud documents, not processing images |
 
 ---
 
-## Error Quick Reference
+## Cloud Document Management
+
+### doc search — Search Cloud Documents
+
+Search the user's CamScanner cloud documents. Supports keyword search, time range filtering, and document type filtering, which can be combined.
+
+```bash
+camscanner-cli doc search [keyword] [flags]
+```
+
+| Parameter/Flag | Description |
+|----------------|-------------|
+| `keyword` (positional) | Search keywords (multiple words separated by spaces; any match counts — OR semantics) |
+| `-f, --filter` | Document type filter: pdf/word/excel/ppt/image/markdown/html |
+| `-n, --limit` | Maximum number of results (default 5, max 50) |
+| `-a, --after` | Start time (supports `2006-01-02`, `2006-01-02 15:04:05`, or unix timestamp) |
+| `-b, --before` | End time (same formats as above) |
+| `-s, --scope` | Search scope: `title` (default — title + page title + notes) or `full` (includes OCR full text) |
+
+**Usage examples**:
+
+```bash
+# Search for documents containing "contract"
+camscanner-cli doc search "contract"
+
+# Search recent PDF documents
+camscanner-cli doc search -f pdf -n 10
+
+# Search documents within a time range
+camscanner-cli doc search --after 2026-08-01 --before 2026-08-31
+
+# Keyword + type + time combined search
+camscanner-cli doc search "report" -f word --after 2026-08-01
+
+# Full-text search (including OCR content)
+camscanner-cli doc search "invoice number" -s full -n 20
+```
+
+**Output format**: The CLI displays search results in a table.
+
+**Agent display rules (mandatory)**: When presenting search results to the user, the agent **must** include at least the following four columns:
+
+| Column | Source | Description |
+|--------|--------|-------------|
+| Title | CLI output "标题" column | Document title |
+| Type | Inferred from link URL path | e.g., `/pdfDetail` → PDF, `/markdownDetail` → Markdown, `/detail` → Scan/Image |
+| Folder | CLI output "所在目录" column | Folder containing the document |
+| Link | CLI output "链接" column | Clickable web page URL |
+
+> **Type inference rule**: `/pdfDetail` = PDF, `/markdownDetail` = Markdown, `/detail` = Scan (image). Map other types from the URL path name accordingly. The agent must not omit the Type column or show only title and link.
+
+**Agent behavior rules**:
+- When the user says "find/search/look up my documents", use `doc search` — **do not** enter the image/pdf processing flow.
+- Multiple keywords are separated by spaces and use OR semantics (any match counts).
+- When no keyword is provided, returns the most recent document list.
+- Default returns 5 results; increase `-n` when the user needs more.
+
+**Keyword tokenization strategy**:
+
+The agent should reasonably tokenize the user's search description, separating words with spaces to improve hit probability (under OR semantics, more tokens means broader matching). However, tokenization must be careful:
+- **Should tokenize**: user says "thesis formula HD" → split to `"thesis formula HD"`; user says "meeting notes August" → split to `"meeting notes August"`
+- **Should not tokenize**: proper nouns, brand names, personal names, and fixed phrases must not be forcibly split. E.g., "CamScanner" stays as one token; "Zhang San's report" keeps "Zhang San" together.
+- **When uncertain, do not tokenize**: if unsure whether splitting improves results, pass the user's original text as a single keyword.
+
+**Semantic intent recognition**:
+
+The agent must parse the user's query semantically, extracting time, type, and other structured intents into the corresponding parameters — **not as search keywords**:
+
+- **Time intent → `--after` / `--before` parameters**: when the user mentions a time range, parse it as a time filter, not as a keyword.
+  - "papers from last August" → `doc search "papers" --after 2025-08-01 --before 2025-08-31`
+  - "meeting notes from last week" → `doc search "meeting notes" --after 2026-08-17 --before 2026-08-23`
+  - "contracts from this year" → `doc search "contracts" --after 2026-01-01`
+- **Type intent → `-f` parameter**: when the user mentions a document type, map it to the type filter.
+  - "find my PDF invoices" → `doc search "invoices" -f pdf`
+- **Quantity intent → `-n` parameter**: when the user says "recent ones", "find more", etc., adjust the return count.
+
+> **Core principle**: The tokenization strategy applies only to **actual search keywords**. Time, type, quantity, and other structured semantics must be extracted into the corresponding command parameters and must never be mixed into keywords. Wrong example: `doc search "last August papers"` — this would match "last August" as literal text in document content instead of filtering by time.
+
+**Search scope decision (`-s` parameter)**:
+
+| User Intent | Parameter |
+|-------------|-----------|
+| Explicitly says "in the title", "in notes", "page title" | `-s title` |
+| Explicitly says "in the content", "in the body", "full text search" | `-s full` |
+| No explicit intent (default) | First search with `-s title`; if no results, automatically retry with `-s full` |
+
+> **Two-step search strategy**: When the user does not specify a search scope, first search by title (faster), then search full text if no results (covers OCR content). If both return nothing, confirm the document does not exist.
+
+---
+
+## Invoice/Receipt Recognition
+
+### image receipt — Invoice Recognition
+
+Recognize invoice/receipt images and return structured JSON data (invoice type, amount, date, invoice number, etc.).
+
+```bash
+camscanner-cli image receipt <file> [-o output.json]
+```
+
+| Parameter/Flag | Description |
+|----------------|-------------|
+| `file` (positional) | Invoice/receipt image path (required) |
+| `-o, --output` | Output JSON file path (if omitted, prints to terminal) |
+
+**Usage examples**:
+
+```bash
+# Recognize an invoice and output to terminal
+camscanner-cli image receipt invoice.jpg
+
+# Recognize and save result to a file
+camscanner-cli image receipt invoice.jpg -o invoice_result.json
+```
+
+**Return data**: JSON format containing a `bills_list` array (one element per invoice), each element including invoice type, amount, tax, date, invoice number, and other structured fields. If `invoice_type` is `"ot"`, it means no valid invoice information was recognized.
+
+**Agent behavior rules**:
+- When the user mentions "recognize invoice", "expense report", "receipt", or "extract invoice info", use `image receipt`.
+- **Do not** confuse invoice recognition with `image convert --format excel`: the former extracts structured fields (amount, tax ID, etc.), the latter converts image content to a table format.
+- The recognition result is structured JSON data. The agent should parse it and present it to the user in a human-readable way (e.g., listing key fields like amount, date).
+- `image receipt` does not support the `-s` flag (the result is JSON data, not a document).
+
+---
 
 | Error Signature | Cause | Handling |
 |-----------------|-------|----------|
@@ -262,12 +467,38 @@ When a user request matches multiple operations, disambiguate as follows.
 | Saving cloud documents with `-s` | No | Retry may create duplicate documents, which is acceptable |
 | `image edit` | Yes | Safe to retry |
 
+### Retry Limits and Circuit Breaker (Mandatory)
+
+> The agent **must** follow these retry limits and must not retry indefinitely.
+
+**Retry limit**: for the same command on the same file, retry at most 3 times (4 total attempts including the first run). After the limit is reached, the agent **must stop retrying**, report the error details to the user, and suggest troubleshooting steps.
+
+**Circuit breaker**: when the same operation type, such as `convert`, `enhance`, or `ocr`, fails 3 times in one session, even across different files, the agent must:
+1. Stop all further attempts for that operation type.
+2. Summarize the errors already observed and analyze likely root causes, such as unsupported format, corrupted file, or mismatched parameters.
+3. Report the failure status and recommended fixes to the user.
+4. Resume only if the user explicitly asks to keep trying.
+
+**Retry intervals**:
+
+| Error Type | Interval | Notes |
+|------------|----------|-------|
+| HTTP 429 | 10 seconds | Rate limited; wait before retrying |
+| HTTP 500/504 | 5 seconds | Temporary server-side failure |
+| HTTP 400 | No wait | Client-side issue; inspect parameters and files before retrying |
+
+**HTTP 400 retry handling**: HTTP 400 usually means the request parameters or file are invalid. Before retrying, the agent should check:
+
+- Whether the file format is supported.
+- Whether the file is corrupted or empty.
+- Whether parameter spelling and values are correct.
+- For multi-file operations such as `merge-*` or `merge-text`, whether there are too many input files. Large file counts may exceed request-size or processing limits, so try fewer files per batch.
+- If the problem remains after inspection, retries are still allowed, but the 3-retry limit must be respected.
 ---
 
 ## Safety Constraints
 
 - Tokens are managed by the system keychain. The skill does not store or log tokens.
-- Invoke commands only when the user actively requests an operation.
 - **Data flow**:
   - Input files are uploaded to CamScanner servers for processing and are temporarily stored there during processing.
   - Converted artifacts generate temporary `file_id` values, which are used to download results.

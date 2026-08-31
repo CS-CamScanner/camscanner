@@ -95,6 +95,7 @@ camscanner-cli image edit \
 |----------|---------------|
 | Meeting whiteboard photo -> editable document | `image convert whiteboard.jpg --format word -s` |
 | Paper scans -> Markdown | `image merge-text "page1.jpg" "page2.jpg" --format md -o paper.md` or `image convert --format md -s` |
+| Invoice photo -> structured data extraction | `image receipt invoice.jpg` |
 | Invoice photo -> Excel spreadsheet | `image convert invoice.jpg --format excel -s` |
 | Contract PDF -> editable Word document | `pdf convert contract.pdf --format word -s` |
 | Business card photo -> text extraction | `image ocr namecard.jpg` |
@@ -103,3 +104,4 @@ camscanner-cli image edit \
 | Blurry ID photo -> higher clarity | `image hd id_photo.jpg -s` |
 | Old photo restoration | `image restore vintage.jpg -s` |
 | Multi-page exam paper -> merged PDF | `image merge-pdf q1.jpg q2.jpg q3.jpg -s` |
+| Search cloud documents | `doc search "keyword" -f pdf -n 10` |

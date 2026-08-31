@@ -1,14 +1,14 @@
 #!/usr/bin/env node
-// camscanner-cli installer - cross-platform Node.js script.
+// camscanner-cli installer — cross-platform Node.js script.
 // Requires Node.js >= 18 (uses native fetch).
 //
 // Usage:
 //   node scripts/setup.cjs
 //
 // Environment variables (all optional):
-//   CAMSCANNER_CLI_VERSION - version to install (default: read from SKILL.md)
-//   CAMSCANNER_CLI_CDN     - CDN base URL override
-//   CAMSCANNER_CLI_DIR     - install directory override
+//   CAMSCANNER_CLI_VERSION — version to install (default: read from SKILL.md)
+//   CAMSCANNER_CLI_CDN     — CDN base URL override
+//   CAMSCANNER_CLI_DIR     — install directory override
 
 'use strict';
 
@@ -17,6 +17,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { pipeline } = require('stream/promises');
+const crypto = require('crypto');
 
 const CDN_BASE = process.env.CAMSCANNER_CLI_CDN || 'https://data.camscanner.com/camscanner-cli/releases';
 const BIN_NAME = 'camscanner-cli';
@@ -57,15 +58,6 @@ function resolveVersion() {
       const content = fs.readFileSync(candidate, 'utf8');
       const match = content.match(/^version:\s*"?([^"\s]+)"?\s*$/m);
       if (match) return match[1];
-      const metadataMatch = content.match(/^metadata:\s*(\{.*\})\s*$/m);
-      if (metadataMatch) {
-        try {
-          const metadata = JSON.parse(metadataMatch[1]);
-          if (metadata.version) return metadata.version;
-        } catch {
-          // Ignore invalid metadata and continue searching.
-        }
-      }
     }
   }
   err('Cannot determine version. Set CAMSCANNER_CLI_VERSION explicitly.');
@@ -102,7 +94,7 @@ function checkExisting(targetVersion) {
     say(`Found existing ${BIN_NAME} v${existingVer} at ${existingPath}`);
     say(`Will upgrade to v${targetVersion}`);
   } catch {
-    // Not installed; proceed.
+    // not installed — proceed
   }
 }
 
@@ -111,6 +103,11 @@ async function download(url, dest) {
   if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${url}`);
   const fileStream = fs.createWriteStream(dest);
   await pipeline(resp.body, fileStream);
+}
+
+function sha256(filePath) {
+  const data = fs.readFileSync(filePath);
+  return crypto.createHash('sha256').update(data).digest('hex');
 }
 
 async function main() {
@@ -124,7 +121,7 @@ async function main() {
 
   checkExisting(version);
 
-  // Artifact naming matches the Makefile: camscanner-cli-{os}-{arch}[.exe]
+  // 产物命名与 Makefile 一致: camscanner-cli-{os}-{arch}[.exe]
   const binFile = osName === 'windows'
     ? `${BIN_NAME}-${osName}-${arch}.exe`
     : `${BIN_NAME}-${osName}-${arch}`;
@@ -140,6 +137,29 @@ async function main() {
     say(`Downloading ${binFile}...`);
     await download(downloadUrl, tmpFile);
 
+    // Download and verify checksum
+    const checksumsUrl = `${CDN_BASE}/v${version}/checksums.txt`;
+    try {
+      const checksumsFile = path.join(tmpDir, 'checksums.txt');
+      await download(checksumsUrl, checksumsFile);
+      const checksumContent = fs.readFileSync(checksumsFile, 'utf8');
+      const lines = checksumContent.split(/\r?\n/);
+      const matchLine = lines.find(l => l.includes(binFile));
+      if (matchLine) {
+        const expected = matchLine.trim().split(/\s+/)[0];
+        const actual = sha256(tmpFile);
+        if (actual !== expected) {
+          err(`Checksum mismatch for ${binFile}. Expected: ${expected}, Got: ${actual}`);
+        }
+        say('[OK] Checksum verified');
+      } else {
+        say('[WARN] No checksum entry found for this binary, skipping verification');
+      }
+    } catch (e) {
+      if (e.message && e.message.includes('Checksum mismatch')) throw e;
+      say('[WARN] Could not download checksums.txt, skipping verification');
+    }
+
     fs.mkdirSync(installDir, { recursive: true });
     const destBin = path.join(installDir, osName === 'windows' ? `${BIN_NAME}.exe` : BIN_NAME);
     fs.copyFileSync(tmpFile, destBin);
@@ -150,10 +170,21 @@ async function main() {
     const envPath = process.env.PATH || '';
     if (!envPath.split(path.delimiter).includes(installDir)) {
       say('');
-      say(`${installDir} is not in your PATH.`);
       if (osName === 'windows') {
-        say(`  Run: [Environment]::SetEnvironmentVariable("PATH", "${installDir};$env:PATH", "User")`);
+        say(`Adding ${installDir} to user PATH...`);
+        try {
+          execSync(
+            `powershell -NoProfile -Command "[Environment]::SetEnvironmentVariable('PATH', '${installDir};' + [Environment]::GetEnvironmentVariable('PATH', 'User'), 'User')"`,
+            { stdio: 'pipe' }
+          );
+          process.env.PATH = `${installDir}${path.delimiter}${envPath}`;
+          say('[OK] PATH updated');
+        } catch (e) {
+          say(`[WARN] Could not update PATH automatically: ${e.message}`);
+          say(`  Run manually: [Environment]::SetEnvironmentVariable("PATH", "${installDir};$env:PATH", "User")`);
+        }
       } else {
+        say(`${installDir} is not in your PATH.`);
         say(`  Add to ~/.bashrc or ~/.zshrc:`);
         say(`    export PATH="${installDir}:$PATH"`);
       }
@@ -161,8 +192,7 @@ async function main() {
 
     say('');
     say(`${BIN_NAME} v${version} ready!`);
-    say(`  Run: ${BIN_NAME} --version`);
-    say(`  Login: ${BIN_NAME} auth login`);
+    say(`  PATH_HINT: ${installDir}`);
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }

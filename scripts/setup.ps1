@@ -2,9 +2,9 @@
 # Usage: powershell -ExecutionPolicy Bypass -File scripts\setup.ps1
 #
 # Environment variables (all optional):
-#   CAMSCANNER_CLI_VERSION - version to install (default: read from SKILL.md)
-#   CAMSCANNER_CLI_CDN     - CDN base URL override
-#   CAMSCANNER_CLI_DIR     - install directory override (default: %LOCALAPPDATA%\camscanner-cli)
+#   CAMSCANNER_CLI_VERSION — version to install (default: read from SKILL.md)
+#   CAMSCANNER_CLI_CDN     — CDN base URL override
+#   CAMSCANNER_CLI_DIR     — install directory override (default: %LOCALAPPDATA%\camscanner-cli)
 
 $ErrorActionPreference = "Stop"
 
@@ -13,7 +13,7 @@ $BinName = "camscanner-cli"
 $DefaultInstallDir = Join-Path $env:LOCALAPPDATA "camscanner-cli"
 $InstallDir = if ($env:CAMSCANNER_CLI_DIR) { $env:CAMSCANNER_CLI_DIR } else { $DefaultInstallDir }
 
-# Helpers
+# ── Helpers ──────────────────────────────────────────────────────────────────
 
 function Write-Say  { param([string]$Message) Write-Host "  $Message" }
 function Write-Err  { param([string]$Message) Write-Host "  [ERROR] $Message" -ForegroundColor Red; exit 1 }
@@ -66,9 +66,6 @@ function Resolve-SkillVersion {
                 if ($line -match '^version:\s*"?([^"]+)"?\s*$') {
                     return $Matches[1].Trim()
                 }
-                if ($line -match '^metadata:\s*\{.*"version"\s*:\s*"([^"]+)".*\}\s*$') {
-                    return $Matches[1].Trim()
-                }
             }
         }
     }
@@ -103,14 +100,14 @@ function Test-ExistingInstall {
     }
 }
 
-# Main
+# ── Main ─────────────────────────────────────────────────────────────────────
 
 $Arch = Get-Arch
 $Version = Resolve-SkillVersion
 
 Test-ExistingInstall -TargetVersion $Version
 
-# Artifact naming matches the Makefile: camscanner-cli-windows-{arch}.exe
+# 产物命名与 Makefile 一致: camscanner-cli-windows-{arch}.exe
 $BinFile = "${BinName}-windows-${Arch}.exe"
 $DownloadUrl = "${CdnBase}/v${Version}/${BinFile}"
 
@@ -125,6 +122,28 @@ try {
 
     Write-Say "Downloading ${BinFile}..."
     Invoke-WebRequest -Uri $DownloadUrl -OutFile $DestFile -UseBasicParsing
+
+    # Download and verify checksum
+    $ChecksumsUrl = "${CdnBase}/v${Version}/checksums.txt"
+    $ChecksumsFile = Join-Path $TmpDir "checksums.txt"
+    try {
+        Invoke-WebRequest -Uri $ChecksumsUrl -OutFile $ChecksumsFile -UseBasicParsing -ErrorAction Stop
+        $checksumLines = Get-Content $ChecksumsFile
+        $matchLine = $checksumLines | Where-Object { $_ -match $BinFile }
+        if ($matchLine) {
+            $expectedHash = ($matchLine -split '\s+')[0]
+            $actualHash = (Get-FileHash -Path $DestFile -Algorithm SHA256).Hash.ToLower()
+            if ($actualHash -ne $expectedHash) {
+                Write-Err "Checksum mismatch for ${BinFile}. Expected: ${expectedHash}, Got: ${actualHash}"
+            }
+            Write-Say "[OK] Checksum verified"
+        } else {
+            Write-Say "[WARN] No checksum entry found for this binary, skipping verification"
+        }
+    } catch {
+        if ($_.Exception.Message -match "Checksum mismatch") { throw }
+        Write-Say "[WARN] Could not download checksums.txt, skipping verification"
+    }
 
     if (!(Test-Path $InstallDir)) {
         New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
@@ -142,13 +161,23 @@ try {
         Write-Say "Adding $InstallDir to user PATH..."
         [Environment]::SetEnvironmentVariable("PATH", "$InstallDir;$UserPath", "User")
         $env:PATH = "$InstallDir;$env:PATH"
-        Write-Say "[OK] PATH updated (restart terminal for full effect)"
+        Write-Say "[OK] PATH updated"
+    } else {
+        # Ensure current session can find the binary even if PATH was set in a prior session
+        if ($env:PATH -notlike "*$InstallDir*") {
+            $env:PATH = "$InstallDir;$env:PATH"
+        }
     }
 
-    Write-Say ""
-    Write-Say "${BinName} v${Version} ready!"
-    Write-Say "  Run: ${BinName} --version"
-    Write-Say "  Login: ${BinName} auth login"
+    # Verify installation works in current session
+    $verifyResult = & $DestBin --version 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Say ""
+        Write-Say "${BinName} v${Version} ready!"
+        Write-Say "  PATH_HINT: $InstallDir"
+    } else {
+        Write-Err "Installation completed but verification failed."
+    }
 
 } finally {
     Remove-Item -Path $TmpDir -Recurse -Force -ErrorAction SilentlyContinue
