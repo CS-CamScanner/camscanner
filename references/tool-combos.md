@@ -89,6 +89,43 @@ camscanner-cli image edit \
   -o edited.jpg
 ```
 
+### Search and Download Cloud Documents
+
+```bash
+# Step 1: search for the target document
+camscanner-cli doc search "contract"
+
+# Step 2: Agent presents search results for user confirmation
+# Step 3: use the confirmed cs_doc_id to download locally
+camscanner-cli doc download <cs_doc_id> -o ~/Downloads/contract.pdf
+```
+
+### Process Files and Save to a Specific Folder
+
+```bash
+# Convert an image to Word and save directly to a specific folder
+camscanner-cli image convert photo.jpg --format word -s --save-dir "Work Documents"
+```
+
+### Organize Documents into Folders (requires user confirmation)
+
+```bash
+# Step 1: search for documents to organize
+camscanner-cli doc search "invoice" -n 20
+
+# Step 2: Agent presents search results; user confirms which document(s) to move
+# Step 3: list folders to get dir_id
+camscanner-cli doc dirs
+
+# Step 4: match the user's folder name against the folder list
+#   - Exact match: use the corresponding dir_id
+#   - Similar names exist: present similar folders for user to confirm
+#   - No match: inform user the folder doesn't exist, list all available folders
+
+# Step 5: use the confirmed cs_doc_id and matched dir_id to move
+camscanner-cli doc move <cs_doc_id> --dir-id <folder_id>
+```
+
 ## Scenario Mapping
 
 | Scenario | Best Approach |
@@ -105,3 +142,7 @@ camscanner-cli image edit \
 | Old photo restoration | `image restore vintage.jpg -s` |
 | Multi-page exam paper -> merged PDF | `image merge-pdf q1.jpg q2.jpg q3.jpg -s` |
 | Search cloud documents | `doc search "keyword" -f pdf -n 10` |
+| Download cloud documents | `doc download <doc_id> -o ~/Downloads/file.pdf` |
+| View cloud folders | `doc dirs` |
+| Move documents to a folder | `doc move <doc_id> --dir-id <folder_id>` |
+| Save processing results to folder | `image convert photo.jpg --format word -s --save-dir "folder name"` |
