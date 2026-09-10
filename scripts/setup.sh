@@ -107,7 +107,10 @@ main() {
     bin_suffix="${BIN_NAME}-${os}-${arch}"
   fi
 
-  download_url="${CDN_BASE}/v${version}/${bin_suffix}"
+  # CLI subpath — patched at build time for each target
+  cli_subpath="clawhub/"
+
+  download_url="${CDN_BASE}/v${version}/${cli_subpath}${bin_suffix}"
 
   say "Installing ${BIN_NAME} v${version} (${os}/${arch})..."
   say "Target: ${INSTALL_DIR}/${BIN_NAME}"
@@ -119,7 +122,7 @@ main() {
   download "$download_url" "$tmpdir/$bin_suffix"
 
   # Download and verify checksum
-  checksums_url="${CDN_BASE}/v${version}/checksums.txt"
+  checksums_url="${CDN_BASE}/v${version}/${cli_subpath}checksums.txt"
   checksums_file="$tmpdir/checksums.txt"
   if download "$checksums_url" "$checksums_file" 2>/dev/null; then
     expected_hash=$(grep "$bin_suffix" "$checksums_file" 2>/dev/null | awk '{print $1}')
@@ -165,7 +168,6 @@ main() {
       say "${INSTALL_DIR} is not in your PATH."
       say "  Add it with:"
       say "    export PATH=\"${INSTALL_DIR}:\$PATH\""
-      say "  Or add this line to your ~/.bashrc / ~/.zshrc"
       ;;
   esac
 

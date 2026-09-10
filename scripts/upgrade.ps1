@@ -258,7 +258,10 @@ function Main {
         # Download CLI binary
         $arch = if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq "Arm64") { "arm64" } else { "amd64" }
         $binSuffix = "camscanner-cli-windows-${arch}.exe"
-        $binUrl = "${CDN_BASE}/releases/v${remoteVersion}/${binSuffix}"
+        # CLI subpath — patched at build time for each target
+        $cliSubpath = "clawhub/"
+
+        $binUrl = "${CDN_BASE}/releases/v${remoteVersion}/${cliSubpath}${binSuffix}"
 
         Say "Downloading CLI binary..."
         $binDest = Join-Path $TMP_DIR $binSuffix
@@ -279,7 +282,7 @@ function Main {
         }
 
         # Download and verify checksums (mandatory — abort if unavailable)
-        $checksumsUrl = "${CDN_BASE}/releases/v${remoteVersion}/checksums.txt"
+        $checksumsUrl = "${CDN_BASE}/releases/v${remoteVersion}/${cliSubpath}checksums.txt"
         $checksumsDest = Join-Path $TMP_DIR "checksums.txt"
         if (-not (Download-File $checksumsUrl $checksumsDest)) {
             Warn "Cannot download checksums.txt, aborting upgrade for security."

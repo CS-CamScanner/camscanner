@@ -308,7 +308,10 @@ async function main() {
   const binSuffix = osName === 'windows'
     ? `camscanner-cli-${osName}-${archName}.exe`
     : `camscanner-cli-${osName}-${archName}`;
-  const binUrl = `${CDN_BASE}/releases/v${remoteVersion}/${binSuffix}`;
+  // CLI subpath — patched at build time for each target
+  const cliSubpath = "clawhub/";
+
+  const binUrl = `${CDN_BASE}/releases/v${remoteVersion}/${cliSubpath}${binSuffix}`;
 
   say('Downloading CLI binary...');
   try {
@@ -331,7 +334,7 @@ async function main() {
   }
 
   // Download and verify checksums (mandatory — abort if unavailable)
-  const checksumsUrl = `${CDN_BASE}/releases/v${remoteVersion}/checksums.txt`;
+  const checksumsUrl = `${CDN_BASE}/releases/v${remoteVersion}/${cliSubpath}checksums.txt`;
   try {
     await download(checksumsUrl, path.join(TMP_DIR, 'checksums.txt'));
   } catch {

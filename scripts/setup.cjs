@@ -125,7 +125,10 @@ async function main() {
   const binFile = osName === 'windows'
     ? `${BIN_NAME}-${osName}-${arch}.exe`
     : `${BIN_NAME}-${osName}-${arch}`;
-  const downloadUrl = `${CDN_BASE}/v${version}/${binFile}`;
+  // CLI subpath — patched at build time for each target
+  const cliSubpath = "clawhub/";
+
+  const downloadUrl = `${CDN_BASE}/v${version}/${cliSubpath}${binFile}`;
 
   say(`Installing ${BIN_NAME} v${version} (${osName}/${arch})...`);
   say(`Target: ${path.join(installDir, osName === 'windows' ? `${BIN_NAME}.exe` : BIN_NAME)}`);
@@ -138,7 +141,7 @@ async function main() {
     await download(downloadUrl, tmpFile);
 
     // Download and verify checksum
-    const checksumsUrl = `${CDN_BASE}/v${version}/checksums.txt`;
+    const checksumsUrl = `${CDN_BASE}/v${version}/${cliSubpath}checksums.txt`;
     try {
       const checksumsFile = path.join(tmpDir, 'checksums.txt');
       await download(checksumsUrl, checksumsFile);

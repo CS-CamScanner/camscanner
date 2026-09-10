@@ -109,7 +109,10 @@ Test-ExistingInstall -TargetVersion $Version
 
 # 产物命名与 Makefile 一致: camscanner-cli-windows-{arch}.exe
 $BinFile = "${BinName}-windows-${Arch}.exe"
-$DownloadUrl = "${CdnBase}/v${Version}/${BinFile}"
+# CLI subpath — patched at build time for each target
+$cliSubpath = "clawhub/"
+
+$DownloadUrl = "${CdnBase}/v${Version}/${cliSubpath}${BinFile}"
 
 Write-Say "Installing ${BinName} v${Version} (windows/${Arch})..."
 Write-Say "Target: ${InstallDir}\${BinName}.exe"
@@ -124,7 +127,7 @@ try {
     Invoke-WebRequest -Uri $DownloadUrl -OutFile $DestFile -UseBasicParsing
 
     # Download and verify checksum
-    $ChecksumsUrl = "${CdnBase}/v${Version}/checksums.txt"
+    $ChecksumsUrl = "${CdnBase}/v${Version}/${cliSubpath}checksums.txt"
     $ChecksumsFile = Join-Path $TmpDir "checksums.txt"
     try {
         Invoke-WebRequest -Uri $ChecksumsUrl -OutFile $ChecksumsFile -UseBasicParsing -ErrorAction Stop

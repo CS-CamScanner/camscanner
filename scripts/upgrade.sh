@@ -24,6 +24,10 @@ TMP_DIR="$(dirname "$SKILL_DIR")/camscanner-temp"
 BACKUP_DIR="$TMP_DIR/backup"
 LOCK_DIR="$TMP_DIR/upgrade.lock.d"
 CLI_PATH=""
+# Patched to "cp" for targets whose shared mounts prohibit file removal.
+CLI_REPLACE_METHOD="mv"
+# Optional installation directory, patched for targets with a nonstandard PATH.
+CLI_INSTALL_DIR=""
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -72,7 +76,7 @@ get_local_version() {
 
 get_skill_version() {
   if [ -f "$SKILL_DIR/SKILL.md" ]; then
-    grep -oE 'version:[[:space:]]*[0-9]+\.[0-9]+\.[0-9]+' "$SKILL_DIR/SKILL.md" \
+    grep -oE "^version:[[:space:]]*['\"]?[0-9]+\.[0-9]+\.[0-9]+" "$SKILL_DIR/SKILL.md" \
       | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1
   fi
 }
@@ -179,6 +183,9 @@ main() {
   fi
 
   # Find CLI
+  if [ -n "$CLI_INSTALL_DIR" ]; then
+    export PATH="$CLI_INSTALL_DIR:$PATH"
+  fi
   CLI_PATH="$(command -v camscanner-cli 2>/dev/null || true)"
   if [ -z "$CLI_PATH" ]; then
     exit 0
@@ -191,6 +198,9 @@ main() {
     exit 0
   fi
   skill_version="$(get_skill_version)"
+  if [ -z "$skill_version" ]; then
+    warn "Cannot read Skill version from $SKILL_DIR/SKILL.md; using CLI version $cli_version."
+  fi
 
   # Take the lower of CLI and Skill versions
   if [ -n "$skill_version" ] && version_gt "$cli_version" "$skill_version"; then
@@ -230,13 +240,16 @@ main() {
   mkdir -p "$TMP_DIR"
 
   # Download CLI binary
+  # CLI subpath — patched at build time for each target
+  local cli_subpath="clawhub/"
+
   local bin_suffix bin_url
   if [ "$os_name" = "windows" ]; then
     bin_suffix="camscanner-cli-${os_name}-${arch_name}.exe"
   else
     bin_suffix="camscanner-cli-${os_name}-${arch_name}"
   fi
-  bin_url="${CDN_BASE}/releases/v${remote_version}/${bin_suffix}"
+  bin_url="${CDN_BASE}/releases/v${remote_version}/${cli_subpath}${bin_suffix}"
 
   say "Downloading CLI binary..."
   if ! download "$bin_url" "$TMP_DIR/$bin_suffix"; then
@@ -255,7 +268,7 @@ main() {
   fi
 
   # Download and verify checksums (mandatory — abort if unavailable)
-  local checksums_url="${CDN_BASE}/releases/v${remote_version}/checksums.txt"
+  local checksums_url="${CDN_BASE}/releases/v${remote_version}/${cli_subpath}checksums.txt"
   if ! download "$checksums_url" "$TMP_DIR/checksums.txt" 2>/dev/null; then
     warn "Cannot download checksums.txt, aborting upgrade for security."
     exit 0
@@ -298,7 +311,16 @@ main() {
 
   # Replace CLI binary
   say "Replacing CLI binary..."
-  if [ -w "$CLI_PATH" ]; then
+  if [ "$CLI_REPLACE_METHOD" = "cp" ]; then
+    # Overwrite in place without unlinking the existing binary.
+    if cp "$TMP_DIR/$bin_suffix" "$CLI_PATH" && chmod +x "$CLI_PATH"; then
+      :
+    else
+      warn "Failed to replace CLI binary: $CLI_PATH"
+      rollback "$local_version"
+      exit 1
+    fi
+  elif [ -w "$CLI_PATH" ]; then
     mv "$TMP_DIR/$bin_suffix" "$CLI_PATH"
     chmod +x "$CLI_PATH"
   else
@@ -339,14 +361,14 @@ main() {
 
   # Replace references/
   if [ -d "$skill_src/references" ]; then
-    rm -rf "$SKILL_DIR/references"
-    cp -rf "$skill_src/references" "$SKILL_DIR/references"
+    mkdir -p "$SKILL_DIR/references"
+    cp -Rf "$skill_src/references/." "$SKILL_DIR/references/"
   fi
 
   # Replace scripts/ (last, since this script is in it)
   if [ -d "$skill_src/scripts" ]; then
-    rm -rf "$SKILL_DIR/scripts"
-    cp -rf "$skill_src/scripts" "$SKILL_DIR/scripts"
+    mkdir -p "$SKILL_DIR/scripts"
+    cp -Rf "$skill_src/scripts/." "$SKILL_DIR/scripts/"
   fi
 
   # Verify upgrade
