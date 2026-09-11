@@ -5,7 +5,7 @@ display_name_en: "camscanner"
 description: "CamScanner Official Skill — intelligent document conversion and processing. Use when the user mentions CamScanner, format conversion (image/PDF to Word/Excel/Markdown/PDF), image enhancement/upscaling/restoration, OCR, image translation, formula extraction, watermark add/remove, multi-image merge, document scanning/editing, invoice/receipt recognition, or cloud document search/download/move/folder management."
 description_en: "CamScanner Official Skill — intelligent document conversion and processing. Use when the user mentions CamScanner, format conversion (image/PDF to Word/Excel/Markdown/PDF), image enhancement/upscaling/restoration, OCR, image translation, formula extraction, watermark add/remove, multi-image merge, document scanning/editing, invoice/receipt recognition, or cloud document search/download/move/folder management."
 homepage: "https://www.camscanner.com"
-version: "1.1.7"
+version: "1.1.8"
 category: "productivity"
 author: "CamScanner"
 ---
