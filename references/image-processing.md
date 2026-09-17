@@ -1,5 +1,7 @@
 # Image Processing Reference
 
+> **Saving**: These are parameter examples. `-s` alone saves only to the cloud; `-o`/`-d` specify local output. Apply the save policy in `SKILL.md` to the actual task; final artifacts without a save preference require both destinations and a context-based `--save-title`.
+
 ## image enhance - Image Enhancement
 
 There are 10 enhancement modes, selected with `--mode`:
@@ -126,12 +128,12 @@ The output is JSON and includes the `is_tampered` field.
 
 ## image merge-pdf / merge-excel / merge-word - Multi-Image Merge
 
-Merge multiple images into one document. **Hard limit: one command accepts at most 100 input images. More than 100 images cannot be merged into a single file** because the CLI does not provide document merge commands.
+Merge images only into one document; PDF/Word/Excel inputs are not accepted. **Hard limit: one command accepts at most 100 input images. More than 100 images cannot be merged into a single file** because the CLI does not provide document merge commands.
 
 ```bash
-camscanner-cli image merge-pdf page1.jpg page2.jpg page3.jpg -s
-camscanner-cli image merge-excel table1.jpg table2.jpg -s
-camscanner-cli image merge-word doc1.jpg doc2.jpg -s
+camscanner-cli image merge-pdf "page1.jpg" "page2.jpg" "page3.jpg" -s
+camscanner-cli image merge-excel "table1.jpg" "table2.jpg" -s
+camscanner-cli image merge-word "doc1.jpg" "doc2.jpg" -s
 ```
 
 ## image merge-text - Multi-Image OCR Merge

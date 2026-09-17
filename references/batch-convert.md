@@ -10,7 +10,7 @@ The user has multiple files that need to be converted into a common format, such
 
 ### 1. Confirm Input Files
 
-- List files and determine the order with natural sorting.
+- Reuse existing attachments and paths and verify the file list. Preserve explicit user order; otherwise use natural sorting. Ask only about unresolved ambiguity that affects the result.
 - Confirm each file format and the target format.
 - **Hard limit: multi-image merge commands (`merge-*`) accept at most 100 input images per command.**
 
@@ -28,11 +28,13 @@ When there are more than 100 input images:
 | Input | Target | Strategy | Command |
 |-------|--------|----------|---------|
 | Multiple images, <=100 -> one document | Word/PDF/Excel | Merge | `image merge-word/pdf/excel` |
+| Multiple PDFs -> one file | Any | Unsupported; tell the user | No PDF merge command |
 | One PDF -> editable format | Word/Excel/MD | Convert | `pdf convert --format xx` |
+| One Office document -> PDF or format upgrade | PDF/DOCX/XLSX/PPTX | Convert | `office convert` |
 | Multiple independent files -> separate outputs | Mixed | Process one by one | Invoke the corresponding command for each file |
 
 ### 4. Execute and Confirm
 
-- Use `-s` to save to cloud documents, with `--save-title` for naming.
-- Each successful call returns a `doc_id` when saved.
-- When processing files one by one, a failure on one file does not block continuing with the remaining files.
+- Apply the final-artifact save policy in `SKILL.md`: without a save preference use `-o path -s` (`-d dir -s` for PDF-to-images), with `--save-title` when saving to cloud.
+- Verify artifact count, page count, and order. Report local files and actual returned cloud links by successful stage; a missing link means incomplete results.
+- Record failures on independent files. Continue with others only until the main guide's attempt or cumulative failure limit is reached; report successful, failed, and unprocessed items.

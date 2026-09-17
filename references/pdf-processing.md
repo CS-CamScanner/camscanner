@@ -1,5 +1,9 @@
 # PDF Processing Reference
 
+> **Saving**: These are parameter examples. `-s` alone saves only to the cloud; `-o`/`-d` specify local output. Apply the save policy in `SKILL.md` to the actual task; final artifacts without a save preference require both destinations and a context-based `--save-title`.
+
+> **Capability boundary**: There is no command to merge existing PDFs. Process multiple PDFs individually only when separate results are requested. Rendering pages to images does not preserve the original PDF text layer or structure; do not combine it with image assembly to promise PDF merging.
+
 ## pdf convert - PDF Format Conversion
 
 Convert a PDF document to another editable format.
@@ -27,14 +31,17 @@ Render each PDF page as a JPEG image.
 camscanner-cli pdf to-images report.pdf -d ./pages
 # Output: pages/page_1.jpg, pages/page_2.jpg, ...
 
-# Save to cloud documents as a multi-page image document.
-camscanner-cli pdf to-images report.pdf -s
+# Cloud only, when explicitly requested: a multi-page image document.
+camscanner-cli pdf to-images report.pdf -s --save-title "Report pages"
+
+# No save preference: both a local directory and cloud; no -o flag.
+camscanner-cli pdf to-images report.pdf -d ./report_pages -s --save-title "Report pages"
 ```
 
 | Parameter | Description |
 |-----------|-------------|
 | `-d, --dir` | Output directory. Default: `<filename>_pages/`. |
-| `-s` | Save all pages to cloud documents. |
+| `-s` | Cloud only; combine with `-d dir` to save both. |
 
 ## pdf to-images-zip - Convert PDF Pages to an Image ZIP
 

@@ -14,8 +14,8 @@ Infer the `--lang` parameter from the user's request. See `references/image-proc
 
 ### 2. Single Language vs Multiple Languages
 
-- **Single language**: run `image translate --lang xx -s` once.
-- **Multiple language versions**: run the same image through different `--lang` values, using `--save-title` to distinguish outputs.
+- **Single language**: run `image translate <image-path> --lang xx` with final save options from `SKILL.md`; without a preference add `-o translated_xx.jpg -s`.
+- **Multiple language versions**: use different `--lang` values, distinct local paths and `--save-title` values, and verify each result.
 
 ### 3. Multilingual Chaining Logic
 

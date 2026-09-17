@@ -24,7 +24,9 @@ The user has blurry, dark, shadowed, or scratched photos that need restoration o
 If one pass is not good enough, chain operations by writing an intermediate local output and processing it again:
 
 ```text
-image enhance --mode 5 -o temp.jpg  ->  image hd temp.jpg -s
+camscanner-cli image enhance input.jpg --mode 5 -o temp.jpg
+# Continue only after the preceding step succeeds and temp.jpg is usable.
+camscanner-cli image hd temp.jpg -o enhanced.jpg -s --save-title "Enhanced image"
 ```
 
-Note: use `-o` for intermediate local output and `-s` for the final result saved to cloud.
+Keep intermediate artifacts local. The example saves the final artifact to both destinations by default; adjust for explicit preferences using `SKILL.md` and avoid overwriting existing files.
