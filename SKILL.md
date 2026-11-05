@@ -1,17 +1,28 @@
 ---
 name: "camscanner"
 display_name: "CamScanner Official Skill"
-display_name_en: "camscanner"
-description: "CamScanner Official Skill — intelligent document conversion and processing. Use when the user mentions CamScanner, format conversion (image/PDF to Word/Excel/Markdown, Word/Excel/PPT to PDF, Office document format conversion, images to PDF), image enhancement/upscaling/restoration, OCR, image translation, formula extraction, watermark add/remove, multi-image merge, document scanning/editing, invoice/receipt recognition, or cloud document search/download/move/folder management. Does not support merging existing PDFs into one file."
-description_en: "CamScanner Official Skill — intelligent document conversion and processing. Use when the user mentions CamScanner, format conversion (image/PDF to Word/Excel/Markdown, Word/Excel/PPT to PDF, Office document format conversion, images to PDF), image enhancement/upscaling/restoration, OCR, image translation, formula extraction, watermark add/remove, multi-image merge, document scanning/editing, invoice/receipt recognition, or cloud document search/download/move/folder management. Does not support merging existing PDFs into one file."
+display_name_en: "CamScanner Official Skill"
+description: "Use CamScanner through an agent with natural-language requests to find, organize, and process documents more easily. You can start with documents in your CamScanner account, or upload local files to use cloud capabilities such as image enhancement, OCR, format conversion, and image authenticity checks. A CamScanner account login is required to use these features."
+description_en: "Use CamScanner through an agent with natural-language requests to find, organize, and process documents more easily. You can start with documents in your CamScanner account, or upload local files to use cloud capabilities such as image enhancement, OCR, format conversion, and image authenticity checks. A CamScanner account login is required to use these features."
 homepage: "https://www.camscanner.com"
-version: "1.1.8"
+version: "1.1.9"
 category: "productivity"
 author: "CamScanner"
 ---
 # CamScanner CLI Skill Guide
 
-The CamScanner CLI Skill provides a complete document processing toolkit through the `camscanner-cli` command-line tool and the CamScanner AI Tools API. It supports image enhancement, OCR, format conversion, Office document conversion (Word/Excel/PPT to PDF or format upgrade), watermarking, translation, restoration, multi-image conversion to PDF/Word/Excel, receipt recognition, and other image/PDF processing operations, as well as cloud document search, download, move, and folder management.
+Use CamScanner through an agent with natural-language requests to find, organize, and process documents more easily. You can start with documents in your CamScanner account, or upload local files to use cloud capabilities such as image enhancement, OCR, format conversion, and image authenticity checks. A CamScanner account login is required to use these features.
+
+This Skill uses `camscanner-cli` to access CamScanner capabilities: cloud document search, download, move, and folder queries, as well as image enhancement, upscaling, restoration, OCR, format and Office document conversion, watermarking, translation, formula extraction, image authenticity checks, image text editing, multi-image document creation, and receipt recognition.
+
+## Start with Your CamScanner Documents
+
+CamScanner cloud services process the documents. The CLI transfers files, calls cloud capabilities, and delivers results according to the save policy.
+
+- For documents already in CamScanner, find and identify the target, then process it or move it to an existing folder as requested.
+- For local files or attachments, the appropriate CLI processing command reads and uploads the files for cloud processing. Do not invent a standalone upload command.
+- When further processing is requested, follow the flow supported by the current CLI. Do not add processing to a request only to find, download, or manage documents. Provided local files do not require a cloud search first.
+- Deliver results according to the user's preference or the default save policy; cloud-only saving skips downloading final artifacts. Saving results creates new cloud documents; it does not edit or overwrite the original cloud document online.
 
 ## Check Capability Before Execution
 
@@ -206,6 +217,10 @@ Explain warnings and location mismatches using the actual returned reason. A mis
 
 | Category | Command | Function | Output Type | Supports `-s` |
 |----------|---------|----------|-------------|---------------|
+| **Cloud docs** | `doc search` | Search cloud documents (keyword/time/type filter) | stdout table | No |
+| **Cloud docs** | `doc download` | Download cloud document to local (Office keeps original format, images export as PDF/ZIP) | File | No |
+| **Cloud docs** | `doc dirs` | List cloud folder directory tree | stdout tree | No |
+| **Cloud docs** | `doc move` | Move documents to a folder or root | stdout status | No |
 | **Image enhancement** | `image enhance` | Remove shadows, sharpen, convert to black and white, and other 10 modes | Image | Yes |
 | **Image enhancement** | `image hd` | Upscale images and improve resolution | Image | Yes |
 | **Image enhancement** | `image restore` | Restore old photos | Image | Yes |
@@ -230,10 +245,6 @@ Explain warnings and location mismatches using the actual returned reason. A mis
 | **Editing** | `image scan` | Analyze image layout and obtain character indexes and OSS keys | stdout/JSON | No |
 | **Editing** | `image edit` | Replace, delete, or move text based on scan results | Image | Yes |
 | **Receipt** | `image receipt` | Invoice/receipt recognition, returns structured JSON | stdout/JSON | No |
-| **Cloud docs** | `doc search` | Search cloud documents (keyword/time/type filter) | stdout table | No |
-| **Cloud docs** | `doc download` | Download cloud document to local (Office keeps original format, images export as PDF/ZIP) | File | No |
-| **Cloud docs** | `doc dirs` | List cloud folder directory tree | stdout tree | No |
-| **Cloud docs** | `doc move` | Move documents to a folder or root | stdout status | No |
 
 ### Unsupported Operations
 

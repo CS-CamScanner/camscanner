@@ -134,7 +134,8 @@ camscanner-cli doc download D5BC4625B8A14F3EVX7tY9Hf -o ~/Downloads/scan.pdf
   - **PDF files** (exported PDF from image documents or native PDF): suggest format conversion (to Word/Excel/Markdown/TXT), splitting into images, or adding/removing watermarks
   - **Image files** (JPGs extracted from `-f zip` export): suggest enhancement/upscaling/restoration, format conversion, OCR, translation, formula extraction, text editing, etc.
   - **TXT/Markdown files**: suggest converting to Word
-  - **Word/Excel/PPT/HTML files**: no processing capabilities available currently; do not offer guidance
+  - **Word/Excel/PPT files**: use `office convert` to convert to PDF; legacy DOC/XLS/PPT files can also be upgraded to DOCX/XLSX/PPTX. See `references/office-processing.md` for parameters
+  - **HTML files**: no processing capabilities available currently; do not offer guidance
   - Guidance style: after download, briefly inform the user "If you'd like to further process this file, you can..." and list 2-3 of the most common operations. **Do not force guidance** — if the user doesn't need it, simply end the interaction
 
 ### doc dirs — View Folder List
